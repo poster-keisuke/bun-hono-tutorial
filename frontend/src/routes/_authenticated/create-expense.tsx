@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
+import { createExpenseSchema } from '@server/sharedTypes';
 import { useForm } from '@tanstack/react-form';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
@@ -15,6 +17,7 @@ function CreateExpense() {
     defaultValues: {
       title: '',
       amount: '0',
+      date: new Date().toISOString(),
     },
     onSubmit: async ({ value }) => {
       const res = await api.expenses.$post({ json: value });
@@ -35,12 +38,21 @@ function CreateExpense() {
           e.stopPropagation();
           form.handleSubmit();
         }}
-        className='max-w-xl m-auto'
+        className='flex flex-col gap-y-4 max-w-xl m-auto'
       >
         <form.Field
           name='title'
+          validators={{
+            onChange: ({ value }: { value: string }) => {
+              const result = createExpenseSchema.shape.title.safeParse(value);
+              if (!result.success) {
+                return result.error.errors.map((err) => err.message).join(', ');
+              }
+              return undefined;
+            },
+          }}
           children={(field) => (
-            <>
+            <div>
               <Label htmlFor={field.name}>Title</Label>
               <Input
                 id={field.name}
@@ -52,14 +64,23 @@ function CreateExpense() {
               {field.state.meta.isTouched && field.state.meta.errors.length ? (
                 <em>{field.state.meta.errors.join(', ')}</em>
               ) : null}
-            </>
+            </div>
           )}
         />
 
         <form.Field
           name='amount'
+          validators={{
+            onChange: ({ value }: { value: string }) => {
+              const result = createExpenseSchema.shape.amount.safeParse(value);
+              if (!result.success) {
+                return result.error.errors.map((err) => err.message).join(', ');
+              }
+              return undefined;
+            },
+          }}
           children={(field) => (
-            <>
+            <div>
               <Label htmlFor={field.name}>Amount</Label>
               <Input
                 id={field.name}
@@ -72,7 +93,35 @@ function CreateExpense() {
               {field.state.meta.isTouched && field.state.meta.errors.length ? (
                 <em>{field.state.meta.errors.join(', ')}</em>
               ) : null}
-            </>
+            </div>
+          )}
+        />
+
+        <form.Field
+          name='date'
+          validators={{
+            onChange: ({ value }: { value: string }) => {
+              const result = createExpenseSchema.shape.date.safeParse(value);
+              if (!result.success) {
+                return result.error.errors.map((err) => err.message).join(', ');
+              }
+              return undefined;
+            },
+          }}
+          children={(field) => (
+            <div className='self-center'>
+              <Calendar
+                mode='single'
+                selected={new Date(field.state.value)}
+                onSelect={(date) =>
+                  field.handleChange((date ?? new Date()).toISOString())
+                }
+                className='rounded-md border'
+              />
+              {field.state.meta.isTouched && field.state.meta.errors.length ? (
+                <em>{field.state.meta.errors.join(', ')}</em>
+              ) : null}
+            </div>
           )}
         />
 

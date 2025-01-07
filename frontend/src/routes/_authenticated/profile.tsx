@@ -1,3 +1,5 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { userQueryOptions } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
@@ -14,9 +16,20 @@ function Profile() {
 
   return (
     <div className='p-2'>
-      Hello from Profile!
-      <p>Hello {data.user.family_name}</p>
-      <a href='/api/logout'>Logout!</a>
+      <div className='flex items-center gap-2'>
+        <Avatar>
+          {data.user.picture && (
+            <AvatarImage src={data.user.picture} alt={data.user.given_name} />
+          )}
+          <AvatarFallback>{data.user.given_name}</AvatarFallback>
+        </Avatar>
+      </div>
+      <p>
+        {data.user.given_name} {data.user.family_name}
+      </p>
+      <Button asChild className='my-4'>
+        <a href='/api/logout'>Logout!</a>
+      </Button>
     </div>
   );
 }
