@@ -2,16 +2,23 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api } from '@/lib/api';
-import { createExpenseSchema } from '@server/sharedTypes';
+import {
+  createExpense,
+  getAllExpensesQueryOptions,
+  loadingCreteExpenseQueryOptions,
+} from '@/lib/api';
+import { createExpenseSchema, type CreateExpense } from '@server/sharedTypes';
 import { useForm } from '@tanstack/react-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/_authenticated/create-expense')({
   component: CreateExpense,
 });
 
 function CreateExpense() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
@@ -20,12 +27,33 @@ function CreateExpense() {
       date: new Date().toISOString(),
     },
     onSubmit: async ({ value }) => {
-      const res = await api.expenses.$post({ json: value });
-      if (!res.ok) {
-        throw new Error('Failed to create expense');
-      }
+      const existingExpenses = await queryClient.ensureQueryData(
+        getAllExpensesQueryOptions
+      );
 
       navigate({ to: '/expenses' });
+
+      // loading state
+      try {
+        const newExpense = await createExpense({ value });
+        queryClient.setQueryData(loadingCreteExpenseQueryOptions.queryKey, {
+          expense: value,
+        });
+        queryClient.setQueryData(getAllExpensesQueryOptions.queryKey, () => ({
+          ...existingExpenses,
+          expenses: [newExpense, ...existingExpenses.expenses],
+        }));
+
+        toast('Expense Created', {
+          description: `Successfully created expense: ${newExpense.title}`,
+        });
+      } catch (error) {
+        toast('Error', {
+          description: `Failed to create expense: ${error}`,
+        });
+      } finally {
+        queryClient.setQueryData(loadingCreteExpenseQueryOptions.queryKey, {});
+      }
     },
   });
 
